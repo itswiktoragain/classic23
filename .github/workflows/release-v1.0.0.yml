@@ -1,0 +1,21 @@
+name: Publish Classic23 v1.0.0
+on:
+  push:
+    paths:
+      - '.github/workflows/release-v1.0.0.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 1b874446c5990d635eb8d97a7c7bb8bec03e0c7d
+      - name: Package exact snapshot and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git archive --format=zip --prefix=classic23-v1.0.0/ --output=classic23-v1.0.0.zip HEAD
+          gh release create v1.0.0 classic23-v1.0.0.zip --target 1b874446c5990d635eb8d97a7c7bb8bec03e0c7d --title 'Classic23 v1.0.0' --notes 'Exact source snapshot of commit 1b874446c5990d635eb8d97a7c7bb8bec03e0c7d. Includes the UI and local server. Personal model catalog and custom SVG assets are excluded.'
