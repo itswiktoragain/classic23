@@ -4,7 +4,7 @@ import {mkdir, readFile, readdir, unlink, writeFile} from 'node:fs/promises';
 import path from 'node:path';
 const root=path.join(import.meta.dirname,'dist');
 const model='qwen:7b-chat-q4_0';
-const catalog=JSON.parse(await readFile(new URL('./models.json',import.meta.url),'utf8')); 
+const catalog=[{id:'arena',name:'Arena',note:'Compare installed models',logo:null,color:'#555'}]; 
 const arenaId='arena';
 const baseModels=new Set(['hf.co/tensorblock/gpt2-xl-GGUF:Q3_K_M','falcon:7b-instruct-q4_0']);
 const chatStore='/home/wiktor/.local/share/qwen-classic/chats';
@@ -67,7 +67,7 @@ async function arenaCandidate(participant,messages,parentSignal){
  }finally{clearTimeout(timer);parentSignal.removeEventListener('abort',cancel)}
 }
  async function arenaResponse(messages,available,signal,judgeModel=model){
- const participants=catalog.filter(item=>item.id!==arenaId&&available.has(item.id));
+ const participants=[...available].filter(id=>id!==arenaId).map(id=>({id,name:id}));
  const answers=[];
  for(let start=0;start<participants.length;start+=2){
   const results=await Promise.allSettled(participants.slice(start,start+2).map(participant=>arenaCandidate(participant,messages,signal)));
@@ -132,12 +132,7 @@ http.createServer(async(req,res)=>{
    for await(const chunk of upstream.body){pending+=decoder.decode(chunk,{stream:true});let newline;while((newline=pending.indexOf('\n'))>=0){emit(pending.slice(0,newline));pending=pending.slice(newline+1)}}
    pending+=decoder.decode();if(pending.trim())emit(pending);if(isGpt2){if(gpt2ForumLeak(gpt2Output,data.messages.at(-1)?.content||''))gpt2Output="I lost the thread there. Try a short, specific question and I'll give it another shot.";res.write(JSON.stringify({message:{role:'assistant',content:gpt2Output},done:false})+'\n')}res.end(JSON.stringify({message:{role:'assistant',content:''},done:true})+'\n');return;
   }
-  if(req.url?.split('?')[0]==='/ollama-white.svg'){res.setHeader('Content-Type','image/svg+xml');res.end(await readFile(path.join(root,'ollama-source.svg')));return;}
-  if(req.url?.split('?')[0]==='/microsoft-white.svg'){res.setHeader('Content-Type','image/svg+xml');res.end(await readFile(path.join(root,'microsoft-source.svg')));return;}
-  if(req.url?.split('?')[0]==='/intel-original.svg'){res.setHeader('Content-Type','image/svg+xml');res.end(await readFile(path.join(root,'intel-source.svg')));return;}
-  if(req.url?.split('?')[0]==='/vicuna-original.svg'){res.setHeader('Content-Type','image/svg+xml');res.end(await readFile(path.join(root,'vicuna-source.svg')));return;}
-  if(req.url?.split('?')[0]==='/deepseek-white.svg'){res.setHeader('Content-Type','image/svg+xml');const source=await readFile(path.join(root,'deepseek-source.svg'),'utf8');res.end(source.replace('viewBox="0 0 195.0227 41.3595"','viewBox="0.13 0 55.7 41.3595"').replaceAll('#4d6bfe','#ffffff'));return;}
-  const files={'/':'index.html','/chat':'index.html','/models':'index.html','/about':'index.html','/settings':'index.html','/app.js':'app.js','/customize.js':'customize.js','/style.css':'style.css','/qwen.svg':'qwen.svg','/qwen-white.svg':'qwen-white.svg','/vicuna-white.svg':'vicuna-white.svg','/gemma-white.svg':'gemma-white.svg','/mistral-white.svg':'mistral-white.svg','/gpt2-white.svg':'gpt2-white.svg','/stablelm-white.svg':'stablelm-white.svg','/falcon-white.svg':'falcon-white.svg','/arena-white.svg':'arena-white.svg'};
+  const files={'/':'index.html','/chat':'index.html','/models':'index.html','/about':'index.html','/settings':'index.html','/app.js':'app.js','/customize.js':'customize.js','/style.css':'style.css'};
   const pathname=req.url?.split('?')[0]||'/';const file=files[pathname]||(uuidPattern.test(pathname.slice(1))?'index.html':undefined);if(!file){res.writeHead(404);res.end();return;}
   res.setHeader('Content-Type',file.endsWith('.svg')?'image/svg+xml':file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html');let asset=await readFile(path.join(root,file),'utf8');if(file==='index.html')asset=asset.replaceAll('Qwen Classic','Classic23').replace('Qwen may produce inaccurate information','Models may produce inaccurate information').replace('<script type="module" src="/app.js"></script>','<script type="module" src="/app.js"></script><script type="module" src="/customize.js"></script>');if(file==='app.js')asset=asset.replace("'Qwen Classic · '","'Classic23 · '");res.end(asset);
  }catch(e){if(!res.headersSent){res.writeHead(503,{'Content-Type':'application/json'});res.end(JSON.stringify({error:e.message}));}else res.end();}

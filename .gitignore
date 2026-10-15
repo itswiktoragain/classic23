@@ -3,3 +3,5 @@ node_modules/
 models/
 chats/
 preferences.json
+models.json
+dist/*.svg
